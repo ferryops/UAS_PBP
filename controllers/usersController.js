@@ -1,11 +1,11 @@
 // controllers/usersController.js
-const pool = require("../config/db");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 // GET all users
 const getAllUsers = async (req, res) => {
   try {
-    const [users] = await pool.execute("SELECT * FROM users");
-    console.log(users);
+    const users = await prisma.users.findMany();
     res.json(users);
   } catch (error) {
     console.error(error.message);
@@ -17,8 +17,10 @@ const getAllUsers = async (req, res) => {
 const getUserById = async (req, res) => {
   const { id } = req.params;
   try {
-    const [user] = await pool.execute("SELECT * FROM users WHERE id = ?", [id]);
-    res.json(user[0]);
+    const user = await prisma.users.findUnique({
+      where: { id: parseInt(id) },
+    });
+    res.json(user);
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Server Error");
@@ -29,15 +31,15 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   const { username, password, name, token } = req.body;
   try {
-    await pool.execute("INSERT INTO users (username, password, name, token) VALUES (?, ?, ?, ?)", [
-      username,
-      password,
-      name,
-      token,
-    ]);
-
-    const [newUser] = await pool.execute("SELECT * FROM users WHERE id = LAST_INSERT_ID()");
-    res.json(newUser[0]);
+    const newUser = await prisma.users.create({
+      data: {
+        username,
+        password,
+        name,
+        token,
+      },
+    });
+    res.json(newUser);
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Server Error");
@@ -49,16 +51,16 @@ const updateUser = async (req, res) => {
   const { id } = req.params;
   const { username, password, name, token } = req.body;
   try {
-    await pool.execute("UPDATE users SET username = ?, password = ?, name = ?, token = ? WHERE id = ?", [
-      username,
-      password,
-      name,
-      token,
-      id,
-    ]);
-
-    const [updatedUser] = await pool.execute("SELECT * FROM users WHERE id = ?", [id]);
-    res.json(updatedUser[0]);
+    const updatedUser = await prisma.users.update({
+      where: { id: parseInt(id) },
+      data: {
+        username,
+        password,
+        name,
+        token,
+      },
+    });
+    res.json(updatedUser);
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Server Error");
@@ -69,7 +71,9 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.execute("DELETE FROM users WHERE id = ?", [id]);
+    await prisma.users.delete({
+      where: { id: parseInt(id) },
+    });
     res.json("User deleted");
   } catch (error) {
     console.error(error.message);
